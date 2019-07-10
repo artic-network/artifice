@@ -109,7 +109,7 @@ async function clearCurrentProject() {
     let currentProject = null;
 
     try {
-        currentProject = await getCurrentProject();
+        currentProject = await db.get(CURRENT_PROJECT_ID);
     } catch(err) {
         // do nothing - leave currentProject as null
     }
@@ -276,7 +276,7 @@ async function clearCurrentRun() {
     let currentRun = null;
 
     try {
-        currentRun = await getCurrentRun();
+        currentRun = await db.get(CURRENT_RUN_ID);
     } catch(err) {
         // do nothing - leave currentRun as null
     }

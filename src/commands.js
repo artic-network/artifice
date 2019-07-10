@@ -82,7 +82,7 @@ async function exitProjectCommand(args, socket) {
         await clearCurrentRun();
 
         const project = await clearCurrentProject();
-        ipc.server.emit(theSocket, 'message', "Exited project: " + project._id);
+        ipc.server.emit(theSocket, 'message', "Exited project: " + project.project_id);
         global.currentProject = null;
         global.currentRun = null;
     } catch (err) {
@@ -94,7 +94,7 @@ async function exitProjectCommand(args, socket) {
 async function newRunCommand(args, socket) {
     const theSocket = socket;
     try {
-        const result = await newSample(args[1]);
+        const result = await newRun(args[1]);
 
         ipc.server.emit(theSocket, 'message', 'Created new sample for run, ' +
             global.currentRun._id + ', in project, ' + global.currentProject._id);
@@ -157,7 +157,7 @@ async function exitRunCommand(args, socket) {
     const theSocket = socket;
     try {
         const run = await clearCurrentRun();
-        ipc.server.emit(theSocket, 'message', "Exited run: " + run._id);
+        ipc.server.emit(theSocket, 'message', "Exited run: " + run.run_id);
         global.currentRun = null;
     } catch (err) {
         logger.error(err);
