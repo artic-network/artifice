@@ -4,7 +4,7 @@ ARTIC Real Time Integrated Field Informatics Control Engine
 ### Installing
 
 ```
-git clone 
+git clone https://github.com/rambaut/artifice.git
 cd artifice
 npm install
 ```
