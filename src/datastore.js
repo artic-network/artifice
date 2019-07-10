@@ -118,7 +118,7 @@ async function clearCurrentProject() {
  * @returns {Promise<*>}
  */
 async function closeProject(projectId, endDate = new Date()) {
-    const project = await getProject(name);
+    const project = await getProject(projectId);
     if (project != null) {
         project.closed = true;
         project.endDate = endDate;
@@ -134,7 +134,7 @@ async function closeProject(projectId, endDate = new Date()) {
  * @returns {Promise<*>}
  */
 async function reopenProject(projectId) {
-    const project = await getProject(name);
+    const project = await getProject(projectId);
     if (project != null) {
         project.closed = false;
         project.endDate = undefined;
@@ -309,6 +309,38 @@ async function clearCurrentRun() {
 }
 
 /**
+ * Sets the given run as ended
+ * @returns {Promise<*>}
+ */
+async function endRun(runId, endDate = new Date()) {
+    const run = await getRun(runId);
+    if (run != null) {
+        run.ended = true;
+        run.endDate = endDate;
+
+        db.put(run);
+    } else {
+        throw new Error("Run with id, " + runId + ", doesn't exist.")
+    }
+}
+
+/**
+ * Sets the given project as closed
+ * @returns {Promise<*>}
+ */
+async function restartRun(runId) {
+    const run = await getRun(runId);
+    if (run != null) {
+        run.ended = false;
+        run.endDate = undefined;
+
+        db.put(run);
+    } else {
+        throw new Error("Run with id, " + runId + ", doesn't exist.")
+    }
+}
+
+/**
  * Get a list of all the runs for the given project
  * @returns {*}
  */
@@ -427,7 +459,7 @@ async function getAllDocuments() {
 // Export all methods
 module.exports = {
     newProject, getProject, setCurrentProject, getCurrentProject, clearCurrentProject, closeProject, reopenProject, getProjects, deleteProject,
-    newRun, getRun, setCurrentRun, getCurrentRun, clearCurrentRun, getRuns, deleteRun,
+    newRun, getRun, setCurrentRun, getCurrentRun, clearCurrentRun, getRuns, endRun, restartRun, deleteRun,
     newSample, getSample, getSamples, deleteSample,
     updateDocument, getAllDocuments
 };

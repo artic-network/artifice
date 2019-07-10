@@ -3,10 +3,11 @@
  */
 
 // const ScriptRunner = require("./scriptrunner/ScriptRunner");
-const { newProject, getProject, setCurrentProject, getCurrentProject, clearCurrentProject, closeProject, reopenProject, getProjects,
-    newRun, getRun, setCurrentRun, getCurrentRun, clearCurrentRun, getRuns,
+const { newProject, getProject, setCurrentProject, getCurrentProject, clearCurrentProject, closeProject,
+    reopenProject, getProjects, deleteProject,
+    newRun, getRun, setCurrentRun, getCurrentRun, clearCurrentRun, endRun, restartRun, getRuns, deleteRun
     newSample, getSamples,
-    updateDocument, getAllDocuments } = require("./datastore");
+    getAllDocuments } = require("./datastore");
 
 const logger = require('./logger');
 
@@ -91,10 +92,8 @@ async function reopenProjectCommand({ name }) {
     if (!project.closed) {
         throw new Error(`Project, ${project._id} is not closed`);
     }
-    project.closed = false;
-    project.endDate = null;
 
-    await updateDocument(project);
+    await reopenProject(project);
 
     return "Re-opened project: " + project._id;
 }
@@ -150,6 +149,29 @@ async function exitRunCommand() {
     return "Exited run: " + run.run_id;
 }
 
+async function endRunCommand({ name, endDate }) {
+    const currentRun = await getCurrentRun()
+    if (currentRun._id === name) {
+        throw new Error(`Run: ${name} is the current run. Exit run before ending it`);
+    }
+
+    await endRun(name, endDate);
+
+    return "Ended run: " + name;
+}
+
+async function restartRunCommand({ name }) {
+    const run = await getRun(name);
+    if (!run.ended) {
+        throw new Error(`Run: ${run._id} has not ended`);
+    }
+
+    await restartRun(run);
+
+    return "Re-started run: " + run._id;
+}
+
+
 async function addSampleCommand({ name, barcodes, collectionDate }) {
     const currentProject = await getCurrentProject();
     if (currentProject == null) {
@@ -202,7 +224,7 @@ async function getSamplesCommand({ verbose = false, asMessage = false } ) {
  * @param socket
  * @returns {Promise<void>}
  */
-async function statusCommand({ verbose = false }) {
+async function statusCommand({ verbose = false } = {}) {
     let message = "ARTIFICE status:\n";
 
     const projects = await getProjects();
@@ -228,9 +250,9 @@ async function statusCommand({ verbose = false }) {
     if (currentProject != null) {
         message += "\nCurrent project: " + currentProject._id + "\n";
         if (currentRun != null) {
-            message += `\tCurrent run: ${currentRun._id} | ${currentRun.title} | started: ${currentRun.startDate}\n`;
+            message += `Current run: ${currentRun._id} | ${currentRun.title} | started: ${currentRun.startDate}\n`;
         } else {
-            message += "\tCurrent run not set\n";
+            message += "Current run not set\n";
         }
     } else {
         message += "\nCurrent project not set\n";
@@ -305,6 +327,10 @@ function startCommandServer() {
                             message = await enterRunCommand({ name: data[1] });
                         } else if (command === 'exit-run') {
                             message = await exitRunCommand();
+                        } else if (command === 'end-run') {
+                            message = await endRunCommand({ name: data[1], endDate: data[2] });
+                        } else if (command === 'restart-run') {
+                            message = await restartRunCommand({ name: data[1] });
                         } else if (command === 'add-sample') {
                             message = await addSampleCommand({ name: data[1], barcodes: data[2], collectionDate: data[3] });
                         } else if (command === 'list-samples') {
@@ -337,4 +363,4 @@ function startCommandServer() {
     ipc.server.start();
 }
 
-module.exports = { startCommandServer };
+module.exports = { startCommandServer, statusCommand };

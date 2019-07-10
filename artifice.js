@@ -167,6 +167,21 @@ const main = async () => {
             dispatchCommand(['exit-run']) );
 
     program
+        .command('end-run <name>')
+        .alias('er')
+        .description('End a run (cannot be further modified, unless restarted)')
+        .option('-s, --end-date <date>', "The date the run ended (default today)")
+        .action((name, command) =>
+            dispatchCommand(['end-run', command.endDate]) );
+
+    program
+        .command('restart-run <name>')
+        .alias('rr')
+        .description('Re-start an ended run')
+        .action((name) =>
+            dispatchCommand(['restart-run', name]) );
+
+    program
         .command('add-sample <name>')
         .alias('ns')
         .description('Add a new sample within the current run')
