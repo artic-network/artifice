@@ -126,6 +126,38 @@ async function clearCurrentProject() {
 }
 
 /**
+ * Sets the given project as closed
+ * @returns {Promise<*>}
+ */
+async function closeProject(projectId, endDate = new Date()) {
+    const project = await getProject(name);
+    if (project != null) {
+        project.closed = true;
+        project.endDate = endDate;
+
+        db.put(project);
+    } else {
+        throw new Error("Project with id, " + projectId + ", doesn't exist.")
+    }
+}
+
+/**
+ * Sets the given project as closed
+ * @returns {Promise<*>}
+ */
+async function reopenProject(projectId) {
+    const project = await getProject(name);
+    if (project != null) {
+        project.closed = false;
+        project.endDate = undefined;
+
+        db.put(project);
+    } else {
+        throw new Error("Project with id, " + projectId + ", doesn't exist.")
+    }
+}
+
+/**
  * Returns the project specified as the current project.
  * @returns {Promise<*>}
  */
@@ -143,9 +175,9 @@ async function getCurrentProject() {
  */
 async function getProjects() {
     const results = await db.find({
-            selector: {type: 'project'},
-            sort: ['_id']
-        });
+        selector: {type: 'project'},
+        sort: ['_id']
+    });
     return results.docs;
 }
 
@@ -403,7 +435,7 @@ async function getAllDocuments() {
 
 // Export all methods
 module.exports = {
-    newProject, getProject, setCurrentProject, getCurrentProject, clearCurrentProject, getProjects, deleteProject,
+    newProject, getProject, setCurrentProject, getCurrentProject, clearCurrentProject, closeProject, reopenProject, getProjects, deleteProject,
     newRun, getRun, setCurrentRun, getCurrentRun, clearCurrentRun, getRuns, deleteRun,
     newSample, getSample, getSamples, deleteSample,
     updateDocument, getAllDocuments

@@ -3,7 +3,7 @@
  */
 
 // const ScriptRunner = require("./scriptrunner/ScriptRunner");
-const { newProject, getProject, setCurrentProject, getCurrentProject, clearCurrentProject, getProjects,
+const { newProject, getProject, setCurrentProject, getCurrentProject, clearCurrentProject, closeProject, reopenProject, getProjects,
     newRun, getRun, setCurrentRun, getCurrentRun, clearCurrentRun, getRuns,
     newSample, getSamples,
     updateDocument, getAllDocuments } = require("./datastore");
@@ -14,7 +14,7 @@ const ipc = require('node-ipc');
 
 // TODO - can these be generified to a single executeCommand function?
 
-async function newProjectCommand(name, title, protocol, startDate, description) {
+async function newProjectCommand({ name, title, protocol, startDate, description }) {
 
     const result = await newProject(name, title, protocol, startDate, description);
 
@@ -28,7 +28,7 @@ async function newProjectCommand(name, title, protocol, startDate, description) 
         global.currentProject._id + ' - entered as current project.';
 }
 
-async function getProjectsCommand(asMessage = false) {
+async function getProjectsCommand({ verbose = false, asMessage = false }) {
 
     const projects = await getProjects();
 
@@ -36,12 +36,20 @@ async function getProjectsCommand(asMessage = false) {
         // return the list of projects as text
         let message = "";
         if (projects.length > 0) {
-            message += "Available projects:\n";
+            message += "Current projects:\n";
             for (project of projects) {
-                message += `${project._id} | ${project.title} | created: ${project.creationDate}\n`;
+                if (verbose) {
+                    message += `${project._id} | ${project.title}\n` +
+                        `\tprotocol: ${project.protocol}\n` +
+                        `\tstarted: ${project.startDate}\n` +
+                        `\tdescription: ${project.description}\n` +
+                        (project.closed ? `\tclosed: ${project.endDate}\n` : "\n");
+                } else {
+                    message += `${project._id} | ${project.title} | created: ${project.creationDate}\n`;
+                }
             }
         } else {
-            messsage += "No projects available."
+            message += "No projects available."
         }
 
         return message;
@@ -51,7 +59,7 @@ async function getProjectsCommand(asMessage = false) {
     }
 }
 
-async function enterProjectCommand(name) {
+async function enterProjectCommand({ name }) {
     // the current run will no longer be applicable
     await clearCurrentRun();
     global.currentRun = null;
@@ -71,20 +79,17 @@ async function exitProjectCommand() {
     return "Exited project: " + project.project_id;
 }
 
-async function closeProjectCommand(name, endDate) {
+async function closeProjectCommand({ name, endDate }) {
     if (global.currentProject._id === name) {
         throw new Error(`Project, ${project._id} is the current project. Exit project before closing it`);
     }
-    const project = await getProject(name);
-    project.closed = true;
-    project.endDate = endDate;
 
-    await updateDocument(project);
+    await closeProject(name, endDate);
 
     return "Closed project: " + project._id;
 }
 
-async function reopenProjectCommand(name) {
+async function reopenProjectCommand({ name }) {
     const project = await getProject(name);
     if (!project.closed) {
         throw new Error(`Project, ${project._id} is not closed`);
@@ -97,13 +102,13 @@ async function reopenProjectCommand(name) {
     return "Re-opened project: " + project._id;
 }
 
-async function newRunCommand(name, startDate) {
+async function newRunCommand({ name, startDate }) {
     const result = await newRun(name);
 
     return 'Created run, ' + global.currentRun._id + ', in project, ' + global.currentProject._id;
 }
 
-async function getRunsCommand(asMessage = false) {
+async function getRunsCommand({ verbose = false, asMessage = false } ) {
 
     if (global.currentProject == null) {
         throw new Error("No project currently selected (use command 'enter-project <name>')");
@@ -128,7 +133,7 @@ async function getRunsCommand(asMessage = false) {
     }
 }
 
-async function enterRunCommand(name) {
+async function enterRunCommand({ name }) {
     if (global.currentProject == null) {
         throw new Error("No project currently selected (use command 'enter-project <name>')");
     }
@@ -137,13 +142,13 @@ async function enterRunCommand(name) {
     return "Entered run, " + global.currentRun._id + ", as part of project: " + global.currentProject._id;
 }
 
-async function exitRunCommand(args, socket) {
+async function exitRunCommand() {
     const run = await clearCurrentRun();
     global.currentRun = null;
     return "Exited run: " + run.run_id;
 }
 
-async function newSampleCommand(name, barcodes, collectionDate) {
+async function newSampleCommand({ name, barcodes, collectionDate }) {
     const result = await newSample(name, collectionDate, barcodes);
 
     global.currentRun = await setCurrentRun(result.id);
@@ -159,7 +164,7 @@ async function newSampleCommand(name, barcodes, collectionDate) {
  * @param socket
  * @returns {Promise<void>}
  */
-async function statusCommand(verbose = false) {
+async function statusCommand({ verbose = false }) {
     let message = "ARTIFICE status:\n";
 
     const projects = await getProjects();
@@ -193,9 +198,7 @@ async function statusCommand(verbose = false) {
     return message;
 }
 
-
-
-async function getDocumentsCommand(args, socket) {
+async function getDocumentsCommand() {
     return await getAllDocuments();
 }
 
@@ -236,35 +239,37 @@ function startCommandServer() {
                         let message = "";
                         let results = null;
                         if (command === 'new-project') {
-                            message = await newProjectCommand(data[1], data[2], data[3], data[4]);
+                            message = await newProjectCommand({
+                                name: data[1], title: data[2], protocol: data[3], startDate: data[4], description: data[5]
+                            });
                         } else if (command === 'list-projects') {
-                            message = getProjectsCommand(true);
+                            message = await getProjectsCommand({ verbose: data[1], asMessage: true });
                         } else if (command === 'get-projects') {
-                            results = getProjectsCommand(false);
+                            results = await getProjectsCommand({ asMessage: false });
                         } else if (command === 'enter-project') {
-                            message = enterProjectCommand(data[1]);
+                            message = await enterProjectCommand({ name: data[1] });
                         } else if (command === 'exit-project') {
-                            message = exitProjectCommand();
+                            message = await exitProjectCommand();
                         } else if (command === 'close-project') {
-                            message = closeProjectCommand(data[1], data[2]);
+                            message = await closeProjectCommand({ name: data[1], endDate: data[2] });
                         } else if (command === 'reopen-project') {
-                            message = exitProjectCommand(data[1]);
+                            message = await exitProjectCommand({ name: data[1] });
                         } else if (command === 'new-run') {
-                            message = newRunCommand(data[1]);
+                            message = await newRunCommand({ name: data[1] });
                         } else if (command === 'list-runs') {
-                            message = getRunsCommand(true);
+                            message = await getRunsCommand({ verbose: data[1], asMessage: true });
                         } else if (command === 'get-runs') {
-                            results = getRunsCommand(false);
+                            results = await getRunsCommand({ asMessage: false });
                         } else if (command === 'enter-run') {
-                            message = enterRunCommand(data[1]);
+                            message = await enterRunCommand({ name: data[1] });
                         } else if (command === 'exit-run') {
-                            message = exitRunCommand();
+                            message = await exitRunCommand();
                         } else if (command === 'new-sample') {
-                            message = newSampleCommand(data[1], data[2], data[3]);
+                            message = await newSampleCommand({ name: data[1], barcodes: data[2], collectionDate: data[3] });
                         } else if (command === 'status') {
-                            message = statusCommand(data[1]);
+                            message = await statusCommand({ name: data[1] });
                         } else if (command === 'get-documents') {
-                            results = getDocumentsCommand();
+                            results = await getDocumentsCommand();
                         } else {
                             throw new Error('Unknown command: ' + command);
                         }

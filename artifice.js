@@ -81,12 +81,13 @@ const main = async () => {
         .command('new-project <name>')
         .alias('np')
         .description('Create a new project')
+        .option('-t, --title <text>', "The title for this project", "")
         .option('-p, --protocol <protocol>', "The protocol being used for this project", "")
         .option('-s, --start-date <date>', "The date of the start of the project",
             (value) => new Date(value))
         .option('-d, --description <text>', "A discription about the project", "")
         .action((name , command) => {
-            dispatchCommand(['new-project', name, command.protocol, command.startDate, command.description])
+            dispatchCommand(['new-project', name, command.title, command.protocol, command.startDate, command.description])
         } );
 
     program
