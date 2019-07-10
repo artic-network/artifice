@@ -133,7 +133,13 @@ const main = async () => {
         .command('new-run <name>')
         .alias('nr')
         .description('Create a new run within the current project')
-        .action((name) => dispatchCommand(['new-run', name]) );
+        .option('-t, --title <text>', "The title for this run", "")
+        .option('-s, --start-date <date>', "The date of the start of the run",
+            (value) => new Date(value))
+        .option('-d, --description <text>', "A discription of the run", "")
+        .action((name , command) => {
+            dispatchCommand(['new-run', name, command.title, command.startDate, command.description])
+        } );
 
     program
         .command('list-runs')
