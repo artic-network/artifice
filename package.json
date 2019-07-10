@@ -1,0 +1,25 @@
+{
+  "name": "artificed",
+  "version": "0.0.1",
+  "description": "",
+  "main": "artificed.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "argparse": "^1.0.10",
+    "commander": "^2.20.0",
+    "express": "^4.17.1",
+    "inquirer": "^6.4.1",
+    "node-ipc": "^9.1.1",
+    "pouchdb-find": "^7.1.1",
+    "pouchdb-node": "^7.1.1",
+    "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.1"
+  }
+}
