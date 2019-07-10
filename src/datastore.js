@@ -73,13 +73,7 @@ async function setCurrentProject(projectId) {
         const project = await getProject(projectId);
 
         // see if a current project document already exists
-        let currentProject = null;
-
-        try {
-            currentProject = await db.get(CURRENT_PROJECT_ID);
-        } catch(err) {
-            // do nothing - leave currentProject as null
-        }
+        let currentProject = getCurrentProject();
 
         // if it does not yet exist, then create it
         if (currentProject == null) {
@@ -108,13 +102,7 @@ async function setCurrentProject(projectId) {
  */
 async function clearCurrentProject() {
     // see if a current project document already exists
-    let currentProject = null;
-
-    try {
-        currentProject = await db.get(CURRENT_PROJECT_ID);
-    } catch(err) {
-        // do nothing - leave currentProject as null
-    }
+    let currentProject = getCurrentProject();
 
     // if it does exist, then remove it
     if (currentProject != null) {
@@ -162,11 +150,15 @@ async function reopenProject(projectId) {
  * @returns {Promise<*>}
  */
 async function getCurrentProject() {
-    // get the current project doc
-    const currentProjectDoc = await db.get(CURRENT_PROJECT_ID);
+    try {
+        // get the current project doc
+        const currentProjectDoc = await db.get(CURRENT_PROJECT_ID);
 
-    // return the project given by the project_id
-    return getProject(currentProjectDoc.project_id);
+        // return the project given by the project_id
+        return getProject(currentProjectDoc.project_id);
+    } catch (err) {
+        return null
+    }
 }
 
 /**
@@ -203,12 +195,13 @@ function deleteProject(project) {
 async function newRun(name, title = null, startDate = new Date(), description = "") {
 
     // a project must exist before we can create a run
-    if (global.currentProject == null) {
+    const currentProject = await getCurrentProject();
+    if (currentProject == null) {
         throw new Error("No project currently set.")
     }
 
     // First check to see if a document with that name exists
-    const results = await db.find({ selector: { _id: name, type: 'run', project_id: global.currentProject._id } });
+    const results = await db.find({ selector: { _id: name, type: 'run', project_id: currentProject._id } });
 
     // if it does, throw an error
     if (results.docs.length > 0) {
@@ -219,7 +212,7 @@ async function newRun(name, title = null, startDate = new Date(), description = 
     const theNewRun = {
         _id: name,
         type: "run",
-        project_id: global.currentProject._id,
+        project_id: currentProject._id,
         title: (title ? title : `Run[${name}]`),
         description: (description ? description : ""),
         startDate: (typeof startDate === Date ? startDate.toISOString() : new Date().toISOString())
@@ -260,13 +253,7 @@ async function setCurrentRun(runId) {
         const run = await getRun(runId);
 
         // see if a current run document already exists
-        let currentRun = null;
-
-        try {
-            currentRun = await db.get(CURRENT_RUN_ID);
-        } catch(err) {
-            // do nothing - leave currentRun as null
-        }
+        let currentRun = getCurrentRun();
 
         // if it does not yet exist, then create it
         if (currentRun == null) {
@@ -294,11 +281,15 @@ async function setCurrentRun(runId) {
  * @returns {Promise<*>}
  */
 async function getCurrentRun() {
-    // get the current run doc
-    const currentRunDoc = await db.get(CURRENT_RUN_ID);
+    try {
+// get the current run doc
+        const currentRunDoc = await db.get(CURRENT_RUN_ID);
 
-    // return the run given by the run_id
-    return getRun(currentRunDoc.run_id);
+        // return the run given by the run_id
+        return getRun(currentRunDoc.run_id);
+    } catch (err) {
+        return null
+    }
 }
 
 /**
@@ -307,13 +298,7 @@ async function getCurrentRun() {
  */
 async function clearCurrentRun() {
     // see if a current run document already exists
-    let currentRun = null;
-
-    try {
-        currentRun = await db.get(CURRENT_RUN_ID);
-    } catch(err) {
-        // do nothing - leave currentRun as null
-    }
+    let currentRun = getCurrentRun();
 
     // if it does exist, then remove it
     if (currentRun != null) {
@@ -355,12 +340,14 @@ function deleteRun(run) {
  */
 async function newSample(name, collectionDate, barcodes, description = "") {
     // if no project is currently selected then we can't create a new sample
-    if (global.currentProject == null) {
+    const currentProject = getCurrentProject();
+    if (currentProject == null) {
         throw new Error("No project currently set.")
     }
 
     // if no run is currently selected then we can't create a new sample
-    if (global.currentRun == null) {
+    const currentRun = getCurrentRun();
+    if (currentRun == null) {
         throw new Error("No run currently set.")
     }
 
@@ -377,8 +364,8 @@ async function newSample(name, collectionDate, barcodes, description = "") {
     const sample = {
         _id: name,
         type: "sample",
-        project: global.currentProject._id,
-        run: global.currentRun._id,
+        project: currentProject._id,
+        run: currentRun._id,
         barcodes: barcodes,
         collectionDate: (typeof collectionDate === Date ? collectionDate.toISOString() : collectionDate),
         description: (description ? description : "")
@@ -403,9 +390,13 @@ function getSample(sampleId) {
  * Get a list of samples for the given run
  * @returns {*}
  */
-async function getSamples(run = global.currentRun, project = global.currentProject) {
+async function getSamples(project, run = null) {
+    const selector = {type: 'sample', project_id: project._id };
+    if (run != null) {
+        selector.run_id = run._id;
+    }
     const results = await db.find({
-        selector: {type: 'sample', run_id: run._id, project_id: project._id},
+        selector: selector,
         sort: ['_id']
     });
     return results.docs;

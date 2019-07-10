@@ -20,12 +20,11 @@ async function newProjectCommand({ name, title, protocol, startDate, description
 
     // the current run will no longer be applicable
     await clearCurrentRun();
-    global.currentRun = null;
 
-    global.currentProject = await setCurrentProject(result.id);
+    const currentProject = await setCurrentProject(result.id);
 
     return 'Created new project with name, ' +
-        global.currentProject._id + ' - entered as current project.';
+        currentProject._id + ' - entered as current project.';
 }
 
 async function getProjectsCommand({ verbose = false, asMessage = false }) {
@@ -62,10 +61,9 @@ async function getProjectsCommand({ verbose = false, asMessage = false }) {
 async function enterProjectCommand({ name }) {
     // the current run will no longer be applicable
     await clearCurrentRun();
-    global.currentRun = null;
 
-    global.currentProject = await setCurrentProject(name)
-    return "Entered project: " + global.currentProject._id;
+    const currentProject = await setCurrentProject(name)
+    return "Entered project: " + currentProject._id;
 }
 
 async function exitProjectCommand() {
@@ -73,20 +71,19 @@ async function exitProjectCommand() {
     await clearCurrentRun();
 
     const project = await clearCurrentProject();
-    global.currentProject = null;
-    global.currentRun = null;
 
     return "Exited project: " + project.project_id;
 }
 
 async function closeProjectCommand({ name, endDate }) {
-    if (global.currentProject._id === name) {
-        throw new Error(`Project, ${project._id} is the current project. Exit project before closing it`);
+    const currentProject = await getCurrentProject()
+    if (currentProject._id === name) {
+        throw new Error(`Project, ${name} is the current project. Exit project before closing it`);
     }
 
     await closeProject(name, endDate);
 
-    return "Closed project: " + project._id;
+    return "Closed project: " + name;
 }
 
 async function reopenProjectCommand({ name }) {
@@ -102,24 +99,29 @@ async function reopenProjectCommand({ name }) {
     return "Re-opened project: " + project._id;
 }
 
-async function newRunCommand({ name, startDate }) {
-    const result = await newRun(name);
+async function newRunCommand({ name, startDate, description }) {
+    const result = await newRun(name, startDate, description);
 
-    return 'Created run, ' + global.currentRun._id + ', in project, ' + global.currentProject._id;
+    const currentProject = await getCurrentProject();
+    const currentRun = await setCurrentRun(result.id);
+
+    return 'Created run, ' + currentRun._id + ', in project, ' +
+        currentProject._id + ' - entered as current run.';
 }
 
 async function getRunsCommand({ verbose = false, asMessage = false } ) {
 
-    if (global.currentProject == null) {
+    const currentProject = await getCurrentProject();
+    if (currentProject == null) {
         throw new Error("No project currently selected (use command 'enter-project <name>')");
     }
 
-    const runs = await getRuns(global.currentProject);
+    const runs = await getRuns(currentProject);
 
     if (asMessage) {
         let message = "";
         if (runs.length > 0) {
-            message += `Available runs for project, ${global.currentProject._id}:\n`;
+            message += `Available runs for project, ${currentProject._id}:\n`;
             for (run of runs) {
                 message += `${run._id} | ${run.title} | started: ${run.startDate}\n`;
             }
@@ -134,29 +136,65 @@ async function getRunsCommand({ verbose = false, asMessage = false } ) {
 }
 
 async function enterRunCommand({ name }) {
-    if (global.currentProject == null) {
+    const currentProject = await getCurrentProject();
+    if (currentProject == null) {
         throw new Error("No project currently selected (use command 'enter-project <name>')");
     }
 
-    global.currentRun = await setCurrentRun(args[1]);
-    return "Entered run, " + global.currentRun._id + ", as part of project: " + global.currentProject._id;
+    const currentRun = await setCurrentRun(name);
+    return "Entered run, " + currentRun._id + ", as part of project: " + currentProject._id;
 }
 
 async function exitRunCommand() {
     const run = await clearCurrentRun();
-    global.currentRun = null;
     return "Exited run: " + run.run_id;
 }
 
-async function newSampleCommand({ name, barcodes, collectionDate }) {
+async function addSampleCommand({ name, barcodes, collectionDate }) {
+    const currentProject = await getCurrentProject();
+    if (currentProject == null) {
+        throw new Error("No project currently selected (use command 'enter-project <name>')");
+    }
+    const currentRun = await getCurrentRun();
+    if (currentRun == null) {
+        throw new Error("No run currently selected (use command 'enter-run <name>')");
+    }
+
     const result = await newSample(name, collectionDate, barcodes);
 
-    global.currentRun = await setCurrentRun(result.id);
-    return 'Created new run in project, ' +
-        global.currentProject._id + ', with name, ' +
-        global.currentRun._id + ' - entered as current run.';
+    return `Created new sample in project: ${currentProject._id}, run: ${currentRun._id}, sample name: ${name}`;
 
 }
+
+async function getSamplesCommand({ verbose = false, asMessage = false } ) {
+    const currentProject = await getCurrentProject();
+    if (currentProject == null) {
+        throw new Error("No project currently selected (use command 'enter-project <name>')");
+    }
+    const currentRun = await getCurrentRun();
+    if (currentRun == null) {
+        throw new Error("No run currently selected (use command 'enter-run <name>')");
+    }
+
+    const samples = await getSamples(currentProject, currentRun);
+
+    if (asMessage) {
+        let message = "";
+        if (samples.length > 0) {
+            message += `Samples for the current run, ${currentRun._id}:\n`;
+            for (sample of samples) {
+                message += `${sample._id} | barcodes: ${sample.barcodes} | collection date: ${sample.collectionDate}\n`;
+            }
+        } else {
+            message += "No samples added for this run."
+        }
+
+        return message;
+    } else {
+        return samples;
+    }
+}
+
 
 /**
  * Provide a text description of the current status of ARTIFICE
@@ -184,10 +222,13 @@ async function statusCommand({ verbose = false }) {
     message += "Runs: " + runCount + "\n";
     message += "Samples: " + sampleCount + "\n";
 
-    if (global.currentProject != null) {
-        message += "\nCurrent project: " + global.currentProject._id + "\n";
-        if (global.currentRun != null) {
-            message += `\tCurrent run: ${global.currentRun._id} | ${global.currentRun.title} | started: ${global.currentRun.startDate}\n`;
+    const currentProject = await getCurrentProject();
+    const currentRun = await getCurrentRun();
+
+    if (currentProject != null) {
+        message += "\nCurrent project: " + currentProject._id + "\n";
+        if (currentRun != null) {
+            message += `\tCurrent run: ${currentRun._id} | ${currentRun.title} | started: ${currentRun.startDate}\n`;
         } else {
             message += "\tCurrent run not set\n";
         }
@@ -255,7 +296,7 @@ function startCommandServer() {
                         } else if (command === 'reopen-project') {
                             message = await exitProjectCommand({ name: data[1] });
                         } else if (command === 'new-run') {
-                            message = await newRunCommand({ name: data[1] });
+                            message = await newRunCommand({ name: data[1], startDate: data[2], description: data[3] });
                         } else if (command === 'list-runs') {
                             message = await getRunsCommand({ verbose: data[1], asMessage: true });
                         } else if (command === 'get-runs') {
@@ -264,10 +305,14 @@ function startCommandServer() {
                             message = await enterRunCommand({ name: data[1] });
                         } else if (command === 'exit-run') {
                             message = await exitRunCommand();
-                        } else if (command === 'new-sample') {
-                            message = await newSampleCommand({ name: data[1], barcodes: data[2], collectionDate: data[3] });
+                        } else if (command === 'add-sample') {
+                            message = await addSampleCommand({ name: data[1], barcodes: data[2], collectionDate: data[3] });
+                        } else if (command === 'list-samples') {
+                            message = await getSamplesCommand({ verbose: data[1], asMessage: true });
+                        } else if (command === 'get-samples') {
+                            message = await getSamplesCommand({ asMessage: false });
                         } else if (command === 'status') {
-                            message = await statusCommand({ name: data[1] });
+                            message = await statusCommand({ verbose: data[1] });
                         } else if (command === 'get-documents') {
                             results = await getDocumentsCommand();
                         } else {

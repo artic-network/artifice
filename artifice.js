@@ -86,48 +86,52 @@ const main = async () => {
         .option('-s, --start-date <date>', "The date of the start of the project",
             (value) => new Date(value))
         .option('-d, --description <text>', "A discription about the project", "")
-        .action((name , command) => {
-            dispatchCommand(['new-project', name, command.title, command.protocol, command.startDate, command.description])
-        } );
+        .action((name , command) =>
+            dispatchCommand(['new-project', name, command.title, command.protocol, command.startDate, command.description]));
 
     program
         .command('list-projects')
         .alias('lp')
         .description('List current projects')
         .option('-v, --verbose', "Provide detailed information about the project", false)
-        .action((command) => {
-            dispatchCommand(['list-projects', command.verbose])
-        } );
+        .action((command) =>
+            dispatchCommand(['list-projects', command.verbose]));
 
     program
         .command('get-projects')
         .alias('gp')
         .description('Get current projects in JSON format')
-        .action(() => dispatchCommand(['get-projects']) );
+        .action(() =>
+            dispatchCommand(['get-projects']) );
 
     program
         .command('enter-project <name>')
         .alias('ep')
-        .description('Enter a project')
-        .action((name) => dispatchCommand(['enter-project', name]) );
+        .description('Enter a project (make it current)')
+        .action((name) =>
+            dispatchCommand(['enter-project', name]) );
 
     program
         .command('exit-project')
         .alias('xp')
-        .description('Exit a project')
-        .action(() => dispatchCommand(['exit-project']) );
+        .description('Exit currently selected project')
+        .action(() =>
+            dispatchCommand(['exit-project']) );
 
     program
         .command('close-project <name>')
         .alias('cp')
         .description('Close a project (cannot be further modified, unless reopened)')
-        .action(() => dispatchCommand(['close-project']) );
+        .option('-s, --end-date <date>', "The date the project ended (default today)")
+        .action((name, command) =>
+            dispatchCommand(['close-project', command.endDate]) );
 
     program
         .command('reopen-project <name>')
         .alias('rp')
         .description('Re-open a closed project')
-        .action(() => dispatchCommand(['reopen-project']) );
+        .action((name) =>
+            dispatchCommand(['reopen-project', name]) );
 
     program
         .command('new-run <name>')
@@ -137,59 +141,64 @@ const main = async () => {
         .option('-s, --start-date <date>', "The date of the start of the run",
             (value) => new Date(value))
         .option('-d, --description <text>', "A discription of the run", "")
-        .action((name , command) => {
-            dispatchCommand(['new-run', name, command.title, command.startDate, command.description])
-        } );
+        .action((name , command) =>
+            dispatchCommand(['new-run', name, command.title, command.startDate, command.description]));
 
     program
         .command('list-runs')
         .alias('lr')
         .description('List runs within the current project')
-        .action(() => dispatchCommand(['list-runs']) );
+        .option('-v, --verbose', "Provide detailed information about the runs", false)
+        .action((command) =>
+            dispatchCommand(['list-runs', command.verbose]));
 
     program
         .command('enter-run <name>')
         .alias('er')
-        .description('Enter a run')
-        .action((name) => dispatchCommand(['enter-run', name]) );
+        .description('Enter a run (make it current)')
+        .action((name) =>
+            dispatchCommand(['enter-run', name]) );
 
     program
         .command('exit-run')
         .alias('xr')
         .description('Exit the current run')
-        .action(() => dispatchCommand(['exit-run']) );
+        .action(() =>
+            dispatchCommand(['exit-run']) );
 
     program
-        .command('new-sample <name>')
+        .command('add-sample <name>')
         .alias('ns')
-        .description('Create a new sample within the current run')
+        .description('Add a new sample within the current run')
         .option('-b, --barcodes <barcodes>', "A list of barcodes associated with this sample",
             (value) => value.split(','))
         .option('-d, --collection-date <date>', "The date of collection of this sample",
             (value) => new Date(value))
-        .action((name , command) => {
-            const barcodes = command.barcodes;
-            const collectionDate = command.collectionDate;
-            dispatchCommand(['new-sample', name, barcodes, collectionDate])
-        } );
+        .action((name , command) =>
+            dispatchCommand(['add-sample', name, command.barcodes, command.collectionDate]));
 
     program
         .command('list-samples')
         .alias('ls')
         .description('List samples within the current project')
-        .action(() => dispatchCommand(['list-samples']) );
+        .option('-v, --verbose', "Provide detailed information about the runs", false)
+        .action((command) =>
+            dispatchCommand(['list-samples', command.verbose]));
 
     program
         .command('status', '',{isDefault: true})
         .alias('st')
         .description('Provide information about the current status of ARTIFICE')
-        .action(() => dispatchCommand(['status']) );
+        .option('-v, --verbose', "Provide detailed information about the runs", false)
+        .action((command) =>
+            dispatchCommand(['status', command.verbose]) );
 
     program
         .command('get-documents')
         .alias('gd')
         .description('Get all documents within the datastore in JSON format')
-        .action(() => dispatchCommand(['get-documents']) );
+        .action(() =>
+            dispatchCommand(['get-documents']) );
 
     program.parse(process.argv);
 };

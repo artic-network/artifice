@@ -34,7 +34,7 @@ Create a project:
 ./artifice.js new-project my_project \
     --title "This is my new sequencing project" \
     --protocol "ARTIC_EBOV_v1.0" \
-    --startDate 2019-07-10 \
+    --start-date 2019-07-10 \
     --description "A description of the project"
 ```
 
@@ -49,7 +49,7 @@ Start a new run:
 ```$bash
 ./artifice.js new-run todays_run \
     --title "MinION run on Thursday" \
-    --startDate 2019-07-10 \
+    --start-date 2019-07-10 \
     --description "A description of the run"
 ```
 
@@ -58,13 +58,13 @@ Add samples descriptions with barcode allocations:
 ```$bash
 ./artifice.js add-sample patient_001 \
     --barcodes NB01,NB02 \
-    --collectionDate 2019-05-04 
+    --collection-date 2019-05-04 
 ./artifice.js add-sample patient_002 \
     --barcodes NB03 \
-    --collectionDate 2019-05-05 
+    --collection-date 2019-05-05 
 ./artifice.js add-sample patient_003 \
     --barcodes NB04 \
-    --collectionDate 2019-05-06
+    --collection-date 2019-05-06
     .
     .
     . 
