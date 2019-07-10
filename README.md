@@ -1,6 +1,8 @@
 # ARTIFICE
 ARTIC Real Time Integrated Field Informatics Control Engine
 
+#### This is work in progress and doesn't actually do much at the moment
+
 ### Installing
 
 ```$bash
