@@ -5,7 +5,7 @@
 // const ScriptRunner = require("./scriptrunner/ScriptRunner");
 const { newProject, getProject, setCurrentProject, getCurrentProject, clearCurrentProject, closeProject,
     reopenProject, getProjects, deleteProject,
-    newRun, getRun, setCurrentRun, getCurrentRun, clearCurrentRun, endRun, restartRun, getRuns, deleteRun
+    newRun, getRun, setCurrentRun, getCurrentRun, clearCurrentRun, endRun, restartRun, getRuns, deleteRun,
     newSample, getSamples,
     getAllDocuments } = require("./datastore");
 
