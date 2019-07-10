@@ -14,10 +14,11 @@ const CURRENT_RUN_ID = 'current_run';
  * Add a new project to the database
  * @param name
  * @param title
+ * @param protocol
+ * @param startDate
  * @param description
- * @param creationDate
  */
-async function newProject(name, title = null, creationDate = new Date(), description = "") {
+async function newProject(name, title = null, protocol = null, startDate = new Date(), description = "") {
 
     // First check to see if a document with that name exists
     const results = await db.find({ selector: {_id: name, type: 'project'} });
@@ -32,8 +33,9 @@ async function newProject(name, title = null, creationDate = new Date(), descrip
         _id: name,
         type: "project",
         title: (title ? title : `Project[${name}]`),
-        description: (description ? description : ""),
-        creationDate: (typeof creationDate === Date ? creationDate.toISOString() : new Date().toISOString())
+        protocol: (protocol ? protocol : 'unspecified'),
+        startDate: (typeof startDate === Date ? startDate.toISOString() : new Date().toISOString()),
+        description: (description ? description : "")
     };
 
     // put it in the database
@@ -387,6 +389,9 @@ function deleteSample(sample) {
     db.remove(sample);
 }
 
+async function updateDocument(document) {
+    db.put(document);
+}
 /**
  * Get a list of all the documents currently in the database
  * @returns {*}
@@ -401,5 +406,5 @@ module.exports = {
     newProject, getProject, setCurrentProject, getCurrentProject, clearCurrentProject, getProjects, deleteProject,
     newRun, getRun, setCurrentRun, getCurrentRun, clearCurrentRun, getRuns, deleteRun,
     newSample, getSample, getSamples, deleteSample,
-    getAllDocuments
+    updateDocument, getAllDocuments
 };

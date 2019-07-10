@@ -81,13 +81,22 @@ const main = async () => {
         .command('new-project <name>')
         .alias('np')
         .description('Create a new project')
-        .action((name) => dispatchCommand(['new-project', name]) );
+        .option('-p, --protocol <protocol>', "The protocol being used for this project", "")
+        .option('-s, --start-date <date>', "The date of the start of the project",
+            (value) => new Date(value))
+        .option('-d, --description <text>', "A discription about the project", "")
+        .action((name , command) => {
+            dispatchCommand(['new-project', name, command.protocol, command.startDate, command.description])
+        } );
 
     program
         .command('list-projects')
         .alias('lp')
         .description('List current projects')
-        .action(() => dispatchCommand(['list-projects']) );
+        .option('-v, --verbose', "Provide detailed information about the project", false)
+        .action((command) => {
+            dispatchCommand(['list-projects', command.verbose])
+        } );
 
     program
         .command('get-projects')
@@ -106,6 +115,18 @@ const main = async () => {
         .alias('xp')
         .description('Exit a project')
         .action(() => dispatchCommand(['exit-project']) );
+
+    program
+        .command('close-project <name>')
+        .alias('cp')
+        .description('Close a project (cannot be further modified, unless reopened)')
+        .action(() => dispatchCommand(['close-project']) );
+
+    program
+        .command('reopen-project <name>')
+        .alias('rp')
+        .description('Re-open a closed project')
+        .action(() => dispatchCommand(['reopen-project']) );
 
     program
         .command('new-run <name>')
